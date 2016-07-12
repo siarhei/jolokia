@@ -219,6 +219,12 @@
                     ajaxParams.error = opts.ajaxError;
                 }
 
+                //Presales modification start
+                if (opts.ajaxComplete) {
+                    ajaxParams.complete = opts.ajaxComplete;
+                }
+                //Presales modification end
+
                 // Dispatch Callbacks to error and success handlers
                 if (opts.success) {
                     var success_callback = constructCallbackDispatcher(opts.success);
@@ -293,7 +299,8 @@
                     if (callback.success && callback.error) {
                         job = {
                             success: callback.success,
-                            error: callback.error
+                            error: callback.error,
+                            ajaxComplete: callback.ajaxComplete
                         };
                     } else if (callback.callback) {
                         job = {
@@ -413,6 +420,7 @@
             return function() {
                 var errorCbs = [],
                     successCbs = [],
+                    completeCbs = [],
                     i, j,
                     len = jobs.length;
                 var requests = [];
@@ -427,10 +435,12 @@
                         // these callback will be called multiple times
                         var successCb = cbSuccessClosure(job,i);
                         var errorCb = cbErrorClosure(job,i);
+                        var completeCb = cbCompleteClosure(job, i);
                         for (j = 0; j < reqsLen; j++) {
                             requests.push(prepareRequest(job,j));
                             successCbs.push(successCb);
                             errorCbs.push(errorCb);
+                            completeCbs.push(completeCb);
                         }
                     } else {
                         // Job should have a single callback (job.callback) which will be
@@ -456,6 +466,9 @@
                     },
                     error: function(resp, j) {
                         return errorCbs[j].apply(jolokia, [resp, j]);
+                    },
+                    ajaxComplete : function (jqxhr, textStatus) {
+                        return completeCbs[0].apply(jolokia, [jqxhr, textStatus]);
                     }
                 };
                 return jolokia.request(requests, opts);
@@ -517,6 +530,17 @@
                 }
             }
         }
+
+        //Presales modification start
+        function cbCompleteClosure(job, i) {
+            var callback = job.ajaxComplete;
+            return function(resp,j) {
+                if (callback) {
+                    callback(resp,i,j)
+                }
+            }
+        }
+        //Presales modification end
 
         function cbSuccessClosure(job, i) {
             var callback = job.success;
